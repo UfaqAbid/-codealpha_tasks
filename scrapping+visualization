@@ -1,0 +1,85 @@
+import requests
+from bs4 import BeautifulSoup
+import csv
+
+base_url = 'https://books.toscrape.com/catalogue/page-{}.html'
+books = []
+
+rating_map = {
+    "One": 1,
+    "Two": 2,
+    "Three": 3,
+    "Four": 4,
+    "Five": 5
+}
+
+for page in range(1, 6):  # Use 1 to 51 for full site
+    url = base_url.format(page)
+    response = requests.get(url)
+    response.encoding = 'utf-8'  # ✅ Fix encoding issue
+    soup = BeautifulSoup(response.text, 'html.parser')
+
+    for book in soup.select('article.product_pod'):
+        title = book.h3.a['title']
+
+        # ✅ Safely parse price, removing weird chars
+        price_text = book.select_one('p.price_color').text.strip()
+        price = float(price_text.replace('Â', '').replace('£', '').strip())
+
+        availability = book.select_one('p.instock.availability').text.strip()
+        rating_class = book.p['class'][1]
+        rating = rating_map.get(rating_class, 0)
+
+        # Get category from detail page
+        detail_link = book.h3.a['href']
+        detail_url = 'https://books.toscrape.com/catalogue/' + detail_link
+        book_res = requests.get(detail_url)
+        book_res.encoding = 'utf-8'  # ✅ Fix encoding for detail page
+        book_soup = BeautifulSoup(book_res.text, 'html.parser')
+        category = book_soup.select('ul.breadcrumb li a')[2].text
+
+        books.append([title, price, availability, rating, category])
+
+# Save to CSV
+with open('books.csv', 'w', newline='', encoding='utf-8') as file:
+    writer = csv.writer(file)
+    writer.writerow(['Title', 'Price', 'Availability', 'Rating', 'Category'])
+    writer.writerows(books)
+
+print("✅ Scraping complete. Check books.csv")
+
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+df = pd.read_csv("books.csv")
+df.columns = df.columns.str.strip().str.capitalize()
+
+# 1. Average Price by Rating
+plt.figure(figsize=(8,5))
+sns.barplot(data=df, x="Rating", y="Price", errorbar=None, palette="plasma")
+plt.title("Average Book Price by Rating")
+plt.xlabel("Rating (Stars)")
+plt.ylabel("Average Price (£)")
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.tight_layout()
+plt.show()
+
+# 2. Book Count by Category
+category_counts = df['Category'].value_counts()
+plt.figure(figsize=(9,9))
+plt.pie(category_counts, labels=category_counts.index, autopct='%1.1f%%', startangle=140, textprops={'fontsize': 9})
+plt.title("Book Distribution by Category")
+plt.tight_layout()
+plt.show()
+
+# 3. Price Distribution
+plt.figure(figsize=(8,5))
+sns.histplot(df["Price"], bins=20, kde=True, color="skyblue", edgecolor="black")
+plt.title("Book Price Distribution")
+plt.xlabel("Price (£)")
+plt.ylabel("Number of Books")
+plt.grid(True, linestyle="--", alpha=0.5)
+plt.tight_layout()
+plt.show()
