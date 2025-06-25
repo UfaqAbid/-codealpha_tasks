@@ -1,0 +1,85 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load data
+df = pd.read_csv("books.csv")
+
+# Clean columns
+df.columns = df.columns.str.strip().str.capitalize()
+
+# -------------------------
+# 1. Quick Overview
+# -------------------------
+print("\n📄 Dataset Info:")
+print(df.info())
+
+print("\n🔢 Summary Statistics:")
+print(df.describe())
+
+print("\n🧹 Null Values:")
+print(df.isnull().sum())
+
+# -------------------------
+# 2. Top 5 most expensive books
+# -------------------------
+print("\n💸 Top 5 Most Expensive Books:")
+print(df.sort_values(by="Price", ascending=False).head(5)[['Title', 'Price', 'Category']])
+
+# -------------------------
+# 3. Books per category
+# -------------------------
+plt.figure(figsize=(10, 6))
+sns.countplot(data=df, y='Category', order=df['Category'].value_counts().index, palette='cool')
+plt.title("Books Count per Category")
+plt.xlabel("Count")
+plt.ylabel("Category")
+plt.tight_layout()
+plt.show()
+
+# -------------------------
+# 4. Average price per category
+# -------------------------
+avg_price_cat = df.groupby('Category')['Price'].mean().sort_values(ascending=False)
+
+plt.figure(figsize=(10, 6))
+avg_price_cat.plot(kind='bar', color='orange')
+plt.title("Average Price per Category")
+plt.ylabel("Average Price (£)")
+plt.xlabel("Category")
+plt.xticks(rotation=45, ha='right')
+plt.tight_layout()
+plt.show()
+
+# -------------------------
+# 5. Rating distribution
+# -------------------------
+plt.figure(figsize=(6, 4))
+sns.countplot(data=df, x='Rating', palette='Set2')
+plt.title("Books by Rating")
+plt.xlabel("Rating (Stars)")
+plt.ylabel("Number of Books")
+plt.tight_layout()
+plt.show()
+
+# -------------------------
+# 6. Price distribution
+# -------------------------
+plt.figure(figsize=(8, 5))
+sns.histplot(df["Price"], bins=20, kde=True, color='skyblue', edgecolor='black')
+plt.title("Book Price Distribution")
+plt.xlabel("Price (£)")
+plt.ylabel("Number of Books")
+plt.tight_layout()
+plt.show()
+
+# -------------------------
+# 7. Average price by rating
+# -------------------------
+plt.figure(figsize=(6, 4))
+sns.barplot(data=df, x="Rating", y="Price", errorbar=None, palette="magma")
+plt.title("Average Book Price by Rating")
+plt.xlabel("Rating (Stars)")
+plt.ylabel("Average Price (£)")
+plt.tight_layout()
+plt.show()
